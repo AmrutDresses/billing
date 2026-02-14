@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amrut Dresses - Advanced Billing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 15px; background: #f8f9fa; color: #333; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .invoice-box { padding: 15px; border: 1px solid #ddd; margin-top: 20px; background: #fff; }
+        .header-info { border-bottom: 2px solid #444; padding-bottom: 10px; margin-bottom: 15px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        .input-row { display: flex; gap: 8px; }
+        .btn-add { background-color: #333; color: white; font-weight: bold; border: none; cursor: pointer; }
+        .btn-share { background-color: #25D366; color: white; border: none; font-weight: bold; margin-top: 10px; }
+        .btn-pdf { background-color: #007bff; color: white; border: none; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; }
+        table, th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        th { background: #f4f4f4; }
+        .right { text-align: right; }
+        .summary-section { text-align: right; margin-top: 10px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center;">Amrut Dresses Billing</h2>
+    
+    <div class="input-row">
+        <input type="text" id="custName" placeholder="Customer Name">
+        <input type="tel" id="custPhone" placeholder="WhatsApp No">
+    </div>
+    
+    <hr>
+    
+    <input type="text" id="itemDesc" placeholder="Item Name (e.g. Cotton Saree)">
+    <div class="input-row">
+        <input type="number" id="itemPrice" placeholder="Price">
+        <input type="number" id="itemQty" placeholder="Qty" value="1">
+        <input type="number" id="itemTax" placeholder="Tax %" value="0">
+    </div>
+    <button class="btn-add" onclick="addItem()">+ Add Item</button>
+
+    <div id="invoice" class="invoice-box">
+        <div class="header-info">
+            <center><h2 style="margin:0; color: #1a1a1a;">AMRUT DRESSES</h2></center>
+            <p style="margin: 5px 0; font-size: 12px;">
+                <b>Invoice:</b> <span id="invNo">---</span> | 
+                <b>Date:</b> <span id="billDate">---</span><br>
+                <b>Customer:</b> <span id="dispName">---</span>
+            </p>
+        </div>
+
+        <table id="billTable">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th class="right">Total</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <div class="summary-section">
+            <p>Subtotal: ₹<span id="subTotal">0.00</span></p>
+            <p>Tax Amount: ₹<span id="taxTotalAmt">0.00</span></p>
+            <h3 style="color: #d32f2f; margin: 0;">Grand Total: ₹<span id="grandTotal">0.00</span></h3>
+        </div>
+        
+        <p style="font-size: 10px; color: #888; margin-top: 20px; border-top: 1px solid #eee; padding-top: 5px;">
+            Terms: Goods once sold will not be taken back. This is a computer-generated invoice.
+        </p>
+    </div>
+
+    <button class="btn-pdf" onclick="downloadPDF()">💾 Save as PDF</button>
+    <button class="btn-share" onclick="shareWhatsApp()">💬 Share on WhatsApp</button>
+</div>
+
+<script>
+    let items = [];
+    let totals = { sub: 0, tax: 0, grand: 0 };
+    let invoiceReady = false;
+
+    function initInvoice() {
+        if (invoiceReady) return;
+        const now = new Date();
+        document.getElementById('billDate').innerText = now.toLocaleString('en-IN');
+        document.getElementById('invNo').innerText = "AD-" + Date.now().toString().slice(-6);
+        invoiceReady = true;
+    }
+
+    function addItem() {
+        const desc = document.getElementById('itemDesc').value;
+        const price = parseFloat(document.getElementById('itemPrice').value);
+        const qty = parseInt(document.getElementById('itemQty').value);
+        const taxRate = parseFloat(document.getElementById('itemTax').value);
+        const name = document.getElementById('custName').value || "Customer";
+
+        if(!desc || isNaN(price) || isNaN(qty)) return alert("Please fill all fields");
+
+        initInvoice();
+        
+        const lineTotal = price * qty;
+        const lineTax = (lineTotal * taxRate) / 100;
+
+        items.push({ desc, qty, price, lineTotal, lineTax });
+        
+        document.getElementById('dispName').innerText = name;
+        renderTable();
+        
+        // Reset Item Fields
+        document.getElementById('itemDesc').value = '';
+        document.getElementById('itemPrice').value = '';
+        document.getElementById('itemQty').value = '1';
+    }
+
+    function renderTable() {
+        const tbody = document.querySelector("#billTable tbody");
+        tbody.innerHTML = "";
+        
+        totals = { sub: 0, tax: 0, grand: 0 };
+
+        items.forEach(item => {
+            totals.sub += item.lineTotal;
+            totals.tax += item.lineTax;
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.desc}</td>
+                    <td>${item.qty}</td>
+                    <td>${item.price.toFixed(2)}</td>
+                    <td class="right">${item.lineTotal.toFixed(2)}</td>
+                </tr>`;
+        });
+
+        totals.grand = totals.sub + totals.tax;
+
+        document.getElementById('subTotal').innerText = totals.sub.toFixed(2);
+        document.getElementById('taxTotalAmt').innerText = totals.tax.toFixed(2);
+        document.getElementById('grandTotal').innerText = totals.grand.toFixed(2);
+    }
+
+    function downloadPDF() {
+        const element = document.getElementById('invoice');
+        html2pdf().from(element).save(`Amrut_Dresses_${document.getElementById('invNo').innerText}.pdf`);
+    }
+
+    function shareWhatsApp() {
+        const phone = document.getElementById('custPhone').value;
+        if(!phone) return alert("Enter Phone Number");
+
+        const msg = `*AMRUT DRESSES INVOICE*\n------------------\n*Inv:* ${document.getElementById('invNo').innerText}\n*Total:* ₹${totals.grand.toFixed(2)}\n\nThank you for shopping!`;
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+</script>
+
+</body>
+</html>

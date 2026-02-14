@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amrut Dresses Billing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 15px; background: #f4f4f7; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
+        .btn-add { background: #333; color: white; border: none; font-weight: bold; margin-bottom: 20px; }
+        .btn-pdf { background: #007aff; color: white; border: none; font-weight: bold; }
+        .btn-wa { background: #25d366; color: white; border: none; font-weight: bold; }
+        .invoice-box { border: 1px solid #eee; padding: 15px; margin-top: 20px; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; }
+        th, td { border-bottom: 1px solid #f0f0f0; padding: 10px; text-align: left; }
+        .summary { text-align: right; font-weight: bold; color: #d32f2f; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align:center;">Amrut Dresses</h2>
+    <input type="text" id="custName" placeholder="Customer Name">
+    <input type="tel" id="custPhone" placeholder="WhatsApp Number">
+    <hr>
+    <input type="text" id="itemDesc" placeholder="Item Name">
+    <div style="display:flex; gap:10px;">
+        <input type="number" id="itemPrice" placeholder="Price">
+        <input type="number" id="itemQty" placeholder="Qty" value="1">
+        <input type="number" id="itemTax" placeholder="Tax%" value="0">
+    </div>
+    <button class="btn-add" onclick="addItem()">+ Add to Bill</button>
+
+    <div id="invoice" class="invoice-box">
+        <center><h3>AMRUT DRESSES</h3></center>
+        <p style="font-size:12px;">
+            <b>Inv:</b> <span id="invNo">---</span> | <b>Date:</b> <span id="billDate">---</span><br>
+            <b>Customer:</b> <span id="dispName">---</span>
+        </p>
+        <table id="billTable">
+            <thead><tr><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
+            <tbody></tbody>
+        </table>
+        <p class="summary">Grand Total: ₹<span id="grandTotal">0.00</span></p>
+        <p style="font-size:10px; color:gray;">Tax Slab: 0% (GST Exempted). Thank you!</p>
+    </div>
+
+    <button class="btn-pdf" onclick="downloadPDF()">💾 Save PDF to iPhone</button>
+    <button class="btn-wa" onclick="shareWhatsApp()">💬 Share on WhatsApp</button>
+</div>
+
+<script>
+    let items = [];
+    let isInitialized = false;
+
+    function addItem() {
+        const desc = document.getElementById('itemDesc').value;
+        const price = parseFloat(document.getElementById('itemPrice').value);
+        const qty = parseInt(document.getElementById('itemQty').value);
+        const tax = parseFloat(document.getElementById('itemTax').value);
+
+        if(!desc || !price) return alert("Enter item details");
+
+        if(!isInitialized) {
+            document.getElementById('billDate').innerText = new Date().toLocaleDateString('en-IN');
+            document.getElementById('invNo').innerText = "AD-" + Date.now().toString().slice(-6);
+            document.getElementById('dispName').innerText = document.getElementById('custName').value || "Customer";
+            isInitialized = true;
+        }
+
+        const lineTotal = (price * qty) + ((price * qty * tax) / 100);
+        items.push({ desc, qty, lineTotal });
+        updateUI();
+        document.getElementById('itemDesc').value = '';
+        document.getElementById('itemPrice').value = '';
+    }
+
+    function updateUI() {
+        const tbody = document.querySelector("#billTable tbody");
+        tbody.innerHTML = items.map(i => `<tr><td>${i.desc}</td><td>${i.qty}</td><td>₹${i.lineTotal.toFixed(2)}</td></tr>`).join('');
+        const total = items.reduce((sum, i) => sum + i.lineTotal, 0);
+        document.getElementById('grandTotal').innerText = total.toFixed(2);
+    }
+
+    function downloadPDF() {
+        const element = document.getElementById('invoice');
+        html2pdf().from(element).save(`Amrut_Bill_${document.getElementById('invNo').innerText}.pdf`);
+    }
+
+    function shareWhatsApp() {
+        const phone = document.getElementById('custPhone').value;
+        const total = document.getElementById('grandTotal').innerText;
+        const msg = `*AMRUT DRESSES*\nInv: ${document.getElementById('invNo').innerText}\nTotal: ₹${total}\n\nYour bill is ready!`;
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+</script>
+
+</body>
+</html>
